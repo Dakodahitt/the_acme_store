@@ -36,3 +36,26 @@ app.get("/api/users/:id/favorites", async (req, res, next) => {
     next(ex);
   }
 });
+app.post("/api/users/:id/favorites", async (req, res, next) => {
+  try {
+    res
+      .status(201)
+      .send(
+        await createFavorite({
+          user_id: req.params.id,
+          product_id: req.body.product_id,
+        })
+      );
+  } catch (ex) {
+    next(ex);
+  }
+});
+
+app.delete("/api/users/:userId/favorites/:id", async (req, res, next) => {
+  try {
+    await destroyFavorite({ user_id: req.params.userId, id: req.params.id });
+    res.sendStatus(204);
+  } catch (ex) {
+    next(ex);
+  }
+});
