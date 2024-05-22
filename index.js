@@ -38,14 +38,12 @@ app.get("/api/users/:id/favorites", async (req, res, next) => {
 });
 app.post("/api/users/:id/favorites", async (req, res, next) => {
   try {
-    res
-      .status(201)
-      .send(
-        await createFavorite({
-          user_id: req.params.id,
-          product_id: req.body.product_id,
-        })
-      );
+    res.status(201).send(
+      await createFavorite({
+        user_id: req.params.id,
+        product_id: req.body.product_id,
+      })
+    );
   } catch (ex) {
     next(ex);
   }
@@ -59,3 +57,48 @@ app.delete("/api/users/:userId/favorites/:id", async (req, res, next) => {
     next(ex);
   }
 });
+
+const init = async () => {
+  console.log("connecting to database");
+  await client.connect();
+  console.log("connected to database");
+  await createTables();
+  console.log("tables created");
+  const [moe, lucy, larry, ethyl, phone, laptop, tablet] = await Promise.all([
+    createUser({ username: "moe", password: "moe_pw" }),
+    createUser({ username: "lucy", password: "lucy_pw" }),
+    createUser({ username: "larry", password: "larry_pw" }),
+    createUser({ username: "ethyl", password: "ethyl_pw" }),
+    createProduct({ name: "phone" }),
+    createProduct({ name: "laptop" }),
+    createProduct({ name: "tablet" }),
+  ]);
+
+  console.log(await fetchUsers());
+  console.log(await fetchProducts());
+
+  const favorites = await Promise.all([
+    createFavorite({ user_id: moe.id, product_id: phone.id }),
+    createFavorite({ user_id: moe.id, product_id: laptop.id }),
+    createFavorite({ user_id: ethyl.id, product_id: tablet.id }),
+    createFavorite({ user_id: ethyl.id, product_id: phone.id }),
+  ]);
+
+  console.log(await fetchFavorites(moe.id));
+  await destroyFavorite({ user_id: moe.id, id: favorites[0].id });
+  console.log(await fetchFavorites(moe.id));
+
+  console.log(`curl localhost:3000/api/users/${ethyl.id}/favorites`);
+  console.log(
+    `curl -X POST localhost:3000/api/users/${ethyl.id}/favorites -d '{"product_id": "${laptop.id}"}' -H 'Content-Type:application/json'`
+  );
+  console.log(
+    `curl -X DELETE localhost:3000/api/users/${ethyl.id}/favorites/${favorites[3].id}`
+  );
+
+  console.log("data seeded");
+
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => console.log(`listening on port ${port}`));
+};
+init();
